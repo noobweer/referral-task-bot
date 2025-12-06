@@ -46,8 +46,8 @@ class Completed(models.Model):
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default=STATUS_PENDING)
 
     class Meta:
-        verbose_name = "Выполненное задание"
-        verbose_name_plural = "Выполненные задания"
+        verbose_name = "В процессе/выполенное задание"
+        verbose_name_plural = "В процессе/выполенные задания"
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'task'],
