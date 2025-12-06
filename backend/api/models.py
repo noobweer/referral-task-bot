@@ -13,7 +13,7 @@ class TelegramUser(models.Model):
         verbose_name_plural = "Пользователи Telegram"
 
     def __str__(self):
-        return f"ID: {self.telegram_id} @{self.username}"
+        return f"ID: {self.telegram_id} — @{self.username}"
 
 
 class Task(models.Model):
@@ -63,3 +63,6 @@ class WelcomeMessage(models.Model):
     class Meta:
         verbose_name = "Приветственное сообщение"
         verbose_name_plural = "Приветственные сообщения"
+
+    def __str__(self):
+        return self.text
