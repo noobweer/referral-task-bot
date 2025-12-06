@@ -24,7 +24,14 @@ def get_available_tasks(telegram_id: int):
 @sync_to_async
 def get_pending_tasks(telegram_id: int):
     user = _get_profile_telegram(telegram_id)
-    return list(Completed.objects.filter(user=user, status='PE')) if user else None
+    if not user:
+        return []
+    return list(
+        Task.objects.filter(
+            completed__user=user,
+            completed__status=Completed.STATUS_PENDING
+        )
+    )
 
 
 def _get_task_by_id(task_id: int):
@@ -47,7 +54,11 @@ def start_task(task_id: int, telegram_id: int):
         raise HttpError(404, "Task not found")
 
     try:
-        completed = Completed.objects.get(user=user, task=task)
+        # 🔥 Добавь select_related здесь
+        completed = Completed.objects.select_related('task', 'user').get(
+            user=user,
+            task=task
+        )
         if completed.status == Completed.STATUS_DONE:
             raise HttpError(400, "Task already completed and cannot be restarted")
         return completed, False
@@ -57,7 +68,7 @@ def start_task(task_id: int, telegram_id: int):
             task=task,
             status=Completed.STATUS_PENDING
         )
-        return completed, True
+        return Completed.objects.select_related('task', 'user').get(pk=completed.pk), True
 
 
 @sync_to_async

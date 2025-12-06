@@ -1,31 +1,25 @@
-import os
-from dotenv import load_dotenv
+import asyncio
+import logging
 from aiogram import Bot, Dispatcher
-from aiogram.types import Message
-from aiogram.filters import Command
+from config.settings import BOT_TOKEN
+from handlers.start import router as start_router
+from handlers.profile import router as profile_router
+from handlers.support import router as support_router
+from handlers.tasks import router as tasks_router
 
-load_dotenv()
-TOKEN = os.getenv("BOT_TOKEN")
+logging.basicConfig(level=logging.INFO)
 
-bot = Bot(token=TOKEN)
+bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-
-@dp.message(Command("start"))
-async def cmd_start(message: Message):
-    await message.answer("Привет! Я бот на aiogram 3.")
-
-
-@dp.message()
-async def echo(message: Message):
-    await message.answer(f"Ты написал: {message.text}")
+dp.include_router(start_router)
+dp.include_router(profile_router)
+dp.include_router(support_router)
+dp.include_router(tasks_router)
 
 
 async def main():
     await dp.start_polling(bot)
 
-
 if __name__ == "__main__":
-    import asyncio
-
     asyncio.run(main())

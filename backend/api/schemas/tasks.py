@@ -2,6 +2,7 @@ from ninja import Schema
 
 
 class TaskOut(Schema):
+    id: int
     title: str
     description: str
     instruction: str
