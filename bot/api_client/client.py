@@ -13,12 +13,12 @@ async def fetch_profile(telegram_id: int):
             return None
 
 
-async def fetch_create_profile(telegram_id: int):
+async def fetch_create_profile(telegram_id: int, username: str):
     async with httpx.AsyncClient() as client:
         try:
             resp = await client.post(
                 f"{API_BASE_URL}/profiles/",
-                json={"telegram_id": telegram_id}
+                json={"telegram_id": telegram_id, "username": username or ""}
             )
             resp.raise_for_status()
             return resp.json()

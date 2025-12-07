@@ -8,8 +8,10 @@ router = Router()
 
 @router.message(Command("start"))
 async def cmd_start(message: types.Message):
-    telegram_id = message.from_user.id
-    await fetch_create_profile(telegram_id)
+    user = message.from_user
+    telegram_id = user.id
+    username = user.username
+    await fetch_create_profile(telegram_id, username)
     welcomes = await fetch_welcome_messages()
 
     if not welcomes:
