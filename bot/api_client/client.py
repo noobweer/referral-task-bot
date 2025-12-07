@@ -13,6 +13,20 @@ async def fetch_profile(telegram_id: int):
             return None
 
 
+async def fetch_create_profile(telegram_id: int):
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.post(
+                f"{API_BASE_URL}/profiles/",
+                json={"telegram_id": telegram_id}
+            )
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            print(f"API error: {e}")
+            return None
+
+
 async def fetch_welcome_messages():
     async with httpx.AsyncClient() as client:
         try:

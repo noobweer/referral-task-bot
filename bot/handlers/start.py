@@ -1,6 +1,6 @@
 from aiogram import Router, types
 from aiogram.filters import Command
-from bot.api_client.client import fetch_welcome_messages
+from bot.api_client.client import fetch_welcome_messages, fetch_create_profile
 from bot.keyboards.main_menu import main_menu
 
 router = Router()
@@ -8,6 +8,8 @@ router = Router()
 
 @router.message(Command("start"))
 async def cmd_start(message: types.Message):
+    telegram_id = message.from_user.id
+    await fetch_create_profile(telegram_id)
     welcomes = await fetch_welcome_messages()
 
     if not welcomes:
