@@ -20,6 +20,6 @@ async def cmd_start(message: types.Message):
         for i, msg in enumerate(welcomes):
             text = msg["text"]
             if i == len(welcomes) - 1:
-                await message.answer(text, reply_markup=main_menu)
+                await message.answer(text, parse_mode="HTML", reply_markup=main_menu)
             else:
-                await message.answer(text)
+                await message.answer(text, parse_mode="HTML")
