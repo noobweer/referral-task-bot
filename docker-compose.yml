@@ -18,5 +18,7 @@ services:
       - BOT_TOKEN=${BOT_TOKEN}
       - API_BASE_URL=${API_BASE_URL}
       - SUPPORT_USERNAME=${SUPPORT_USERNAME}
+      - REQUIRED_CHANNEL_USERNAME=${REQUIRED_CHANNEL_USERNAME}
+
     depends_on:
       - backend

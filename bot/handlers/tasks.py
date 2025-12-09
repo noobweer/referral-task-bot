@@ -1,3 +1,4 @@
+from bot.utils.subscription import ensure_subscribed_message
 from aiogram import Router, F
 from aiogram.types import (
     Message, CallbackQuery,
@@ -47,6 +48,8 @@ def _build_list_keyboard(tasks: list, prefix: str) -> InlineKeyboardMarkup:
 
 @router.message(F.text == "📋 Выбрать задание")
 async def show_available_tasks(message: Message):
+    if not await ensure_subscribed_message(message):
+        return
     telegram_id = message.from_user.id
     tasks = await fetch_available_tasks(telegram_id)
     if not tasks:
@@ -58,6 +61,8 @@ async def show_available_tasks(message: Message):
 
 @router.message(F.text == "⏱️ Активные задания")
 async def show_pending_tasks(message: Message):
+    if not await ensure_subscribed_message(message):
+        return
     telegram_id = message.from_user.id
     tasks = await fetch_pending_tasks(telegram_id)
     if not tasks:
