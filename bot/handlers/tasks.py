@@ -102,26 +102,34 @@ async def show_task_detail(callback: CallbackQuery):
         
         if image_url and isinstance(image_url, str) and image_url.startswith("http"):
             try:
+                # 1) Фото с короткой подписью и кнопками
                 await callback.message.answer_photo(
                     photo=image_url,
-                    caption=text,
+                    caption=caption,
                     reply_markup=keyboard,
                     parse_mode="HTML",
-        )
+                )
+                # 2) Отдельным сообщением — подробный текст
+                await callback.message.answer(
+                    full_text,
+                    parse_mode="HTML",
+                    disable_web_page_preview=False,
+                )
             except Exception as e:
-                print("ERROR SENDING PHOTO:", e)
-                await callback.message.edit_text(
-                    text,
+                # Если Телеграм всё равно ругнётся — не падаем, а просто шлём текст
+                print("ERROR SENDING PHOTO:", e, "IMAGE_URL:", image_url)
+                await callback.message.answer(
+                    full_text,
                     reply_markup=keyboard,
                     parse_mode="HTML",
-                    disable_web_page_preview=False if prefix != "task" else True,
-        )
+                    disable_web_page_preview=False,
+                )
         else:
-            await callback.message.edit_text(
-            text,
+            await callback.message.answer(
+            full_text,
             reply_markup=keyboard,
             parse_mode="HTML",
-            disable_web_page_preview=False if prefix != "task" else True,
+            disable_web_page_preview=False,
     )
     await callback.answer()
 
