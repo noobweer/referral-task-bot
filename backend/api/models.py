@@ -23,7 +23,13 @@ class Task(models.Model):
     link = models.URLField()
     reward = models.PositiveIntegerField()
     is_active = models.BooleanField(default=True)
-
+    
+    image = models.ImageField(
+        upload_to="task_images/",      # файлы лягут в media/task_images/
+        blank=True,
+        null=True,
+        verbose_name="Картинка задания",
+    )
     class Meta:
         verbose_name = "Задание"
         verbose_name_plural = "Задания"

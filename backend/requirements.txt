@@ -1,3 +1,4 @@
 django
 django-ninja
 python-dotenv
+Pillow

@@ -82,7 +82,9 @@ async def show_task_detail(callback: CallbackQuery):
     if not task:
         await callback.answer("Задание не найдено.", show_alert=True)
         return
-
+    
+    image_url = task.get("image")
+    
     if prefix == "task":
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Начать задание", callback_data=f"start_task:{task_id}")],
@@ -97,12 +99,30 @@ async def show_task_detail(callback: CallbackQuery):
     else:
         text = _format_task_text(task)
         keyboard = _build_task_detail_keyboard(task_id, back_callback)
-        await callback.message.edit_text(
+        
+        if image_url and isinstance(image_url, str) and image_url.startswith("http"):
+            try:
+                await callback.message.answer_photo(
+                    photo=image_url,
+                    caption=text,
+                    reply_markup=keyboard,
+                    parse_mode="HTML",
+        )
+            except Exception as e:
+                print("ERROR SENDING PHOTO:", e)
+                await callback.message.edit_text(
+                    text,
+                    reply_markup=keyboard,
+                    parse_mode="HTML",
+                    disable_web_page_preview=False if prefix != "task" else True,
+        )
+        else:
+            await callback.message.edit_text(
             text,
             reply_markup=keyboard,
             parse_mode="HTML",
-            disable_web_page_preview=False
-        )
+            disable_web_page_preview=False if prefix != "task" else True,
+    )
     await callback.answer()
 
 
