@@ -16,10 +16,7 @@ router = Router()
 
 
 def _serialize_task(request, task: Task) -> TaskOut:
-    """
-    Превращаем объект Task в TaskOut
-    и собираем ПОЛНЫЙ URL до картинки.
-    """
+    
     image_url = None
     if getattr(task, "image", None):
         # task.image.url -> "/media/task_images/..."
