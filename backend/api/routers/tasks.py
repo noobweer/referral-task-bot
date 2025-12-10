@@ -1,7 +1,7 @@
 from typing import List
 
 from ninja import Router
-
+from django.conf import settings
 from ..models import Task
 from ..services.tasks import (
     get_pending_tasks,
@@ -24,7 +24,7 @@ def _serialize_task(request, task: Task) -> TaskOut:
     if getattr(task, "image", None):
         # task.image.url -> "/media/task_images/..."
         # build_absolute_uri -> "http://127.0.0.1:8000/media/task_images/..."
-        image_url = request.build_absolute_uri(task.image.url)
+        image_url = f"{settings.PUBLIC_BASE_URL}{task.image.url}"
 
     return TaskOut(
         id=task.id,
