@@ -4,6 +4,8 @@ from aiogram.types import (
     Message, CallbackQuery,
     InlineKeyboardButton, InlineKeyboardMarkup
 )
+import httpx
+from aiogram.types import BufferedInputFile
 from bot.config.settings import SUPPORT_USERNAME
 
 from bot.api_client.client import (
@@ -99,20 +101,30 @@ async def show_task_detail(callback: CallbackQuery):
         keyboard = _build_task_detail_keyboard(task_id, back_callback)
 
     # 🔹 Пробуем отправить фото, НО текст не ломаем
+        # Если картинка есть и это HTTPS-URL — качаем её сами и шлём как файл
     if image_url and isinstance(image_url, str) and image_url.startswith("https://"):
         try:
             title = task.get("title", "")
             reward = task.get("reward", 0)
 
-            # Сначала фото с короткой подписью + кнопки
+            # 🔹 1. Скачиваем картинку с твоего сервера
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(image_url, timeout=10.0)
+                resp.raise_for_status()
+                image_bytes = resp.content
+
+            # 🔹 2. Оборачиваем в файл для Telegram
+            photo_input = BufferedInputFile(image_bytes, filename="task_image.jpg")
+
+            # 🔹 3. Отправляем фото с короткой подписью и кнопками
             await callback.message.answer_photo(
-                photo=image_url,
+                photo=photo_input,
                 caption=f"📌 <b>{title}</b>\n\n💰 Награда: {reward}₽",
                 parse_mode="HTML",
                 reply_markup=keyboard,
             )
 
-            # Потом ОТДЕЛЬНО полное текстовое описание (как было)
+            # 🔹 4. Следом отправляем полное описание
             await callback.message.answer(
                 text,
                 parse_mode="HTML",
@@ -120,10 +132,9 @@ async def show_task_detail(callback: CallbackQuery):
             )
 
         except Exception as e:
-            # Если Telegram всё равно не принимает URL — не падаем
-            print("ERROR SENDING PHOTO:", e, "URL:", image_url)
+            print("ERROR SENDING PHOTO (download/upload):", e, "URL:", image_url)
 
-            # 🔹 Fallback: старое поведение — просто текст + кнопки
+            # Fallback: старое поведение — просто текст + кнопки
             await callback.message.edit_text(
                 text,
                 reply_markup=keyboard,
@@ -131,13 +142,14 @@ async def show_task_detail(callback: CallbackQuery):
                 disable_web_page_preview=False,
             )
     else:
-        # 🔹 Картинки нет — ведём себя как старый код (edit_text)
+        # Картинки нет — ведём себя как раньше
         await callback.message.edit_text(
             text,
             reply_markup=keyboard,
             parse_mode="HTML",
             disable_web_page_preview=False,
         )
+
 
     await callback.answer()
 
