@@ -106,6 +106,6 @@ STATIC_URL = 'static/'
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-PUBLIC_BASE_URL = "http://78.40.209.100:8000"
+PUBLIC_BASE_URL = "https://cash-lab.ru"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
