@@ -15,6 +15,9 @@ from bot.api_client.client import (
     start_task,
     complete_task
 )
+from typing import Dict
+
+LAST_TASK_PHOTO: Dict[int, int] = {}
 
 router = Router()
 
@@ -73,6 +76,17 @@ async def show_pending_tasks(message: Message):
     keyboard = _build_list_keyboard(tasks, "pending_task")
     await message.answer("⏱️ Ваши активные задания:", reply_markup=keyboard)
 
+async def _delete_last_task_photo(callback: CallbackQuery):
+    """Удаляет последнюю картинку задания в этом чате, если она есть."""
+    chat_id = callback.message.chat.id
+    msg_id = LAST_TASK_PHOTO.pop(chat_id, None)
+    if msg_id is None:
+        return
+
+    try:
+        await callback.bot.delete_message(chat_id=chat_id, message_id=msg_id)
+    except Exception as e:
+        print("ERROR DELETING TASK PHOTO:", e)
 
 @router.callback_query(F.data.startswith("task:") | F.data.startswith("pending_task:"))
 async def show_task_detail(callback: CallbackQuery):
@@ -104,8 +118,12 @@ async def show_task_detail(callback: CallbackQuery):
         # Если картинка есть и это HTTPS-URL — качаем её сами и шлём как файл
         # Если картинка есть и это HTTPS-URL — качаем её сами и шлём как ОДНО сообщение (фото + текст)
         # Если картинка есть и это HTTPS-URL
+        # Если картинка есть и это HTTPS-URL
     if image_url and isinstance(image_url, str) and image_url.startswith("https://"):
         try:
+            # 0. Удаляем предыдущую картинку (если была)
+            await _delete_last_task_photo(callback)
+
             # 1. Скачиваем картинку с твоего сервера
             async with httpx.AsyncClient() as client:
                 resp = await client.get(image_url, timeout=10.0)
@@ -115,12 +133,15 @@ async def show_task_detail(callback: CallbackQuery):
             # 2. Оборачиваем в файл для Telegram
             photo_input = BufferedInputFile(image_bytes, filename="task_image.jpg")
 
-            # 3. Отправляем ЧИСТОЕ фото (без подписи и без кнопок)
-            await callback.message.answer_photo(
+            # 3. Отправляем чистое фото (без подписи и кнопок)
+            photo_msg = await callback.message.answer_photo(
                 photo=photo_input,
             )
 
-            # 4. Отдельным сообщением отправляем текст с кнопками
+            # 4. Запоминаем id картинки для этого чата
+            LAST_TASK_PHOTO[callback.message.chat.id] = photo_msg.message_id
+
+            # 5. Отдельным сообщением отправляем текст с кнопками
             await callback.message.answer(
                 text,
                 reply_markup=keyboard,
@@ -146,8 +167,6 @@ async def show_task_detail(callback: CallbackQuery):
             parse_mode="HTML",
             disable_web_page_preview=False,
         )
-
-
 
 
     await callback.answer()
@@ -185,6 +204,8 @@ async def handle_complete_task(callback: CallbackQuery):
     task_id = int(callback.data.split(":")[1])
     telegram_id = callback.from_user.id
 
+    await _delete_last_task_photo(callback)
+
     if not await complete_task(task_id, telegram_id):
         await callback.answer("Не удалось отправить подтверждение.", show_alert=True)
         return
@@ -197,6 +218,16 @@ async def handle_complete_task(callback: CallbackQuery):
             [InlineKeyboardButton(text="⬅️ Назад к списку", callback_data="back_to_tasks")]
         ])
     )
+    msg_id = getattr(callback.message.chat, "photo_to_delete", None)
+    if msg_id:
+        try:
+            await callback.bot.delete_message(
+                chat_id=callback.message.chat.id,
+                message_id=msg_id
+            )
+        except Exception as e:
+            print("ERROR DELETING PHOTO:", e)
+
     await callback.answer("Выполнено! Спасибо!")
 
 
@@ -204,6 +235,9 @@ async def handle_complete_task(callback: CallbackQuery):
 async def back_to_tasks(callback: CallbackQuery):
     telegram_id = callback.from_user.id
     tasks = await fetch_available_tasks(telegram_id)
+    
+    await _delete_last_task_photo(callback)
+
     if not tasks:
         await callback.message.edit_text("Нет доступных заданий.")
         await callback.answer()
@@ -218,6 +252,9 @@ async def back_to_tasks(callback: CallbackQuery):
 async def back_to_pending(callback: CallbackQuery):
     telegram_id = callback.from_user.id
     tasks = await fetch_pending_tasks(telegram_id)
+    
+    await _delete_last_task_photo(callback)
+
     if not tasks:
         await callback.message.edit_text("Нет активных заданий.")
         await callback.answer()
