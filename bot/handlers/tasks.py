@@ -102,33 +102,24 @@ async def show_task_detail(callback: CallbackQuery):
 
     # 🔹 Пробуем отправить фото, НО текст не ломаем
         # Если картинка есть и это HTTPS-URL — качаем её сами и шлём как файл
+        # Если картинка есть и это HTTPS-URL — качаем её сами и шлём как ОДНО сообщение (фото + текст)
     if image_url and isinstance(image_url, str) and image_url.startswith("https://"):
         try:
-            title = task.get("title", "")
-            reward = task.get("reward", 0)
-
-            # 🔹 1. Скачиваем картинку с твоего сервера
+            # 1. Скачиваем картинку с твоего сервера
             async with httpx.AsyncClient() as client:
                 resp = await client.get(image_url, timeout=10.0)
                 resp.raise_for_status()
                 image_bytes = resp.content
 
-            # 🔹 2. Оборачиваем в файл для Telegram
+            # 2. Оборачиваем в файл для Telegram
             photo_input = BufferedInputFile(image_bytes, filename="task_image.jpg")
 
-            # 🔹 3. Отправляем фото с короткой подписью и кнопками
+            # 3. Отправляем ОДНО сообщение: фото + полный текст задания
             await callback.message.answer_photo(
                 photo=photo_input,
-                caption=f"📌 <b>{title}</b>\n\n💰 Награда: {reward}₽",
+                caption=text,            # тут ВСЁ описание
                 parse_mode="HTML",
                 reply_markup=keyboard,
-            )
-
-            # 🔹 4. Следом отправляем полное описание
-            await callback.message.answer(
-                text,
-                parse_mode="HTML",
-                disable_web_page_preview=False,
             )
 
         except Exception as e:
@@ -152,8 +143,6 @@ async def show_task_detail(callback: CallbackQuery):
 
 
     await callback.answer()
-
-
 
 
 
