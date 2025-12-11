@@ -83,27 +83,69 @@ async def show_task_detail(callback: CallbackQuery):
         await callback.answer("Задание не найдено.", show_alert=True)
         return
 
+    title = task.get("title", "")
+    description = task.get("description", "")
+    reward = task.get("reward", 0)
+    link = task.get("link")
+    image_url = task.get("image")
+
+    # Текст
+    text = (
+        f"📌 <b>{title}</b>\n\n"
+        f"{description}\n\n"
+        f"💰 Награда: {reward}₽"
+    )
+    if link:
+        text += f"\n\n🔗 <a href='{link}'>Ссылка для выполнения</a>"
+
+    # Клавиатура
     if prefix == "task":
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Начать задание", callback_data=f"start_task:{task_id}")],
-            [InlineKeyboardButton(text="⬅️ Назад к списку", callback_data=back_callback)]
+            [InlineKeyboardButton(text="⬅️ Назад к списку", callback_data=back_callback)],
         ])
-        text = (
-            f"📌 <b>{task['title']}</b>\n\n"
-            f"{task['description']}\n\n"
-            f"💰 Награда: {task['reward']}₽"
-        )
-        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
     else:
-        text = _format_task_text(task)
         keyboard = _build_task_detail_keyboard(task_id, back_callback)
-        await callback.message.edit_text(
+
+    # Если картинка есть и это корректный HTTPS URL
+    if image_url and isinstance(image_url, str) and image_url.startswith("https://"):
+        try:
+            # Пытаемся отправить фото
+            sent = await callback.message.answer_photo(
+                photo=image_url,
+                caption=f"📌 <b>{title}</b>\n\n💰 Награда: {reward}₽",
+                parse_mode="HTML",
+                reply_markup=keyboard
+            )
+
+            # Отправляем полный текст отдельным сообщением
+            await callback.message.answer(
+                text,
+                parse_mode="HTML",
+                disable_web_page_preview=False
+            )
+
+        except Exception as e:
+            print("ERROR SENDING PHOTO:", e, "URL:", image_url)
+
+            # Если что — отправляем только текст
+            await callback.message.answer(
+                text,
+                parse_mode="HTML",
+                reply_markup=keyboard,
+                disable_web_page_preview=False
+            )
+    else:
+        # Картинки нет — отправляем текст
+        await callback.message.answer(
             text,
-            reply_markup=keyboard,
             parse_mode="HTML",
+            reply_markup=keyboard,
             disable_web_page_preview=False
         )
+
     await callback.answer()
+
 
 
 
