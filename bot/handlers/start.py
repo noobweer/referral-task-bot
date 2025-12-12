@@ -45,12 +45,13 @@ async def check_subscription(callback: CallbackQuery):
     user_id = callback.from_user.id
 
     if await is_user_subscribed(bot, user_id):
+        await fetch_create_profile(user_id, callback.from_user.username)
         await callback.message.answer(
             "✅ Спасибо за подписку! Теперь бот полностью доступен.",
             reply_markup=main_menu,
         )
     else:
         await callback.answer(
-            "❗️ Вы ещё не подписались на канал.",
+            "❗️ Вы ещё не подписались на канал ❗️",
             show_alert=True
         )

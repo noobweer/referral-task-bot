@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from bot.api_client.client import fetch_profile
+from bot.api_client.client import fetch_profile, fetch_create_profile
 from aiogram.types import Message
 from bot.utils.subscription import ensure_subscribed_message
 
@@ -13,6 +13,11 @@ async def show_available_tasks(message: Message):
         return
     telegram_id = message.from_user.id
     profile = await fetch_profile(telegram_id)
+
+    if not profile:
+        # пробуем создать профиль
+        await fetch_create_profile(telegram_id, message.from_user.username)
+        profile = await fetch_profile(telegram_id)
 
     if not profile:
         await message.answer("Профиль временно недоступен. Попробуй ещё раз через минуту 🙏")
