@@ -94,4 +94,10 @@ def complete_task(task_id: int, telegram_id: int):
 
     completed.status = Completed.STATUS_DONE
     completed.save(update_fields=['status'])
+    
+     # ✅ НОВОЕ: +1 к счетчику заданий и начисление баллов
+    user.tasks_done += 1
+    user.points += task.reward   # reward теперь считаем как "баллы"
+    user.save(update_fields=["tasks_done", "points"])
+
     return completed

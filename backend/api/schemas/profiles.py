@@ -14,7 +14,8 @@ class ProfileOut(Schema):
     date_joined_bot: datetime
     last_activity: datetime
     tasks_done: int
-
+    points: int
+    
     @field_serializer('date_joined_bot', 'last_activity')
     def serialize_datetime(self, dt: datetime) -> str:
         return dt.strftime("%d.%m.%Y – %H:%M")

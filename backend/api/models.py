@@ -8,6 +8,9 @@ class TelegramUser(models.Model):
     last_activity = models.DateTimeField(auto_now=True)
     tasks_done = models.PositiveIntegerField(default=0)
 
+    points = models.PositiveIntegerField(default=0)
+    bonus_claimed = models.BooleanField(default=False)
+    
     class Meta:
         verbose_name = "Пользователь Telegram"
         verbose_name_plural = "Пользователи Telegram"
