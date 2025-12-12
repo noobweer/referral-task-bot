@@ -5,9 +5,12 @@ from ..services.profiles import get_profile_telegram, create_or_update_profile
 router = Router()
 
 
-@router.get("/{telegram_id}", response=ProfileOut)
-async def get_profile(request, telegram_id: int):
-    return await get_profile_telegram(telegram_id)
+@router.get("/profiles/{telegram_id}", response=ProfileOut)
+def get_profile(request, telegram_id: int):
+    try:
+        return TelegramUser.objects.get(telegram_id=telegram_id)
+    except TelegramUser.DoesNotExist:
+        raise HttpError(404, "Profile not found")
 
 
 @router.post('/', response={201: ProfileOut, 200: ProfileOut})

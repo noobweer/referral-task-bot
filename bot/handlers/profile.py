@@ -13,11 +13,20 @@ async def show_available_tasks(message: Message):
         return
     telegram_id = message.from_user.id
     profile = await fetch_profile(telegram_id)
-    text = (
-        f"📌 Профиль пользователя: <b>{profile['username']}</b>\n\n"
-        
-        f"Регистрация: <b>{profile['date_joined_bot']}</b>\n"
-        f"Последняя активность: <b>{profile['last_activity']}</b>\n\n"
-        f"Заданий выполнено: <b>{profile['tasks_done']}</b>"
+
+    if not profile:
+        await message.answer("Профиль временно недоступен. Попробуй ещё раз через минуту 🙏")
+        return
+
+    username = profile.get("username") or "—"
+    points = profile.get("points", 0)
+    tasks_done = profile.get("tasks_done", 0)
+    date_joined = profile.get("date_joined_bot", "")
+    last_activity = profile.get("last_activity", "")
+
+    await message.answer(
+        f"📌 Профиль пользователя: <b>{username}</b>\n\n"
+        f"🪙 Баланс: <b>{points}</b> баллов\n"
+        f"✅ Выполнено заданий: <b>{tasks_done}</b>\n",
+        parse_mode="HTML"
     )
-    await message.answer(text, parse_mode="HTML")
