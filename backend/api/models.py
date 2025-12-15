@@ -42,17 +42,31 @@ class Task(models.Model):
 
 
 class Completed(models.Model):
-    STATUS_PENDING = 'PE'
-    STATUS_DONE = 'DN'
+    STATUS_PENDING = "PE"   # started / in progress
+    STATUS_REVIEW = "RV"    # submitted for review
+    STATUS_DONE = "DN"      # approved
+    STATUS_REJECTED = "RJ"  # rejected
 
     STATUS_CHOICES = (
-        (STATUS_PENDING, 'Pending'),
-        (STATUS_DONE, 'Done'),
+        (STATUS_PENDING, "В процессе"),
+        (STATUS_REVIEW, "На проверке"),
+        (STATUS_DONE, "Принято"),
+        (STATUS_REJECTED, "Отклонено"),
     )
 
     user = models.ForeignKey(TelegramUser, on_delete=models.CASCADE)
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
-    status = models.CharField(max_length=32, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    status = models.CharField(max_length=2, choices=STATUS_CHOICES, default=STATUS_PENDING)
+
+    # ✅ доказательство выполнения
+    proof_text = models.TextField(blank=True, null=True)
+    proof_image = models.ImageField(upload_to="proof_images/", blank=True, null=True)
+
+    # ✅ для админа
+    admin_comment = models.TextField(blank=True, null=True)
+
+    # ✅ защита от двойного начисления
+    rewarded = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "В процессе/выполенное задание"
