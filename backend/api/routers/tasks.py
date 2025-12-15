@@ -1,6 +1,8 @@
 from typing import List
 
 from ninja import Router
+from ninja.files import UploadedFile
+from ninja import File
 from django.conf import settings
 from ..models import Task
 from ..services.tasks import (
@@ -58,6 +60,18 @@ async def post_start_task(request, task_id: int, telegram_id: int):
 
 
 @router.post("/{task_id}/complete", response=TaskStatusOut)
-async def post_complete_task(request, task_id: int, telegram_id: int, proof_text: str = ""):
-    return await complete_task(task_id, telegram_id, proof_text=proof_text)
+async def post_complete_task(
+    request,
+    task_id: int,
+    telegram_id: int,
+    proof_text: str = "",
+    proof_image: UploadedFile | None = File(None),
+):
+    return await complete_task(
+        task_id,
+        telegram_id,
+        proof_text=proof_text,
+        proof_image=proof_image
+    )
+
 

@@ -92,15 +92,29 @@ async def start_task(task_id: int, telegram_id: int) -> bool:
             return False
 
 
-async def complete_task(task_id: int, telegram_id: int, proof_text: str = "") -> bool:
+async def complete_task(
+    task_id: int,
+    telegram_id: int,
+    proof_text: str = "",
+    proof_image_bytes: bytes | None = None,
+    filename: str = "proof.jpg",
+    mime_type: str = "image/jpeg",
+) -> bool:
     async with httpx.AsyncClient() as client:
         try:
-            resp = await client.post(
-                f"{API_BASE_URL}/tasks/{task_id}/complete",
-                params={"telegram_id": telegram_id, "proof_text": proof_text}
-            )
+            url = f"{API_BASE_URL}/tasks/{task_id}/complete"
+
+            params = {"telegram_id": telegram_id, "proof_text": proof_text}
+
+            if proof_image_bytes is None:
+                resp = await client.post(url, params=params)
+            else:
+                files = {"proof_image": (filename, proof_image_bytes, mime_type)}
+                resp = await client.post(url, params=params, files=files)
+
             return resp.status_code == 200
         except Exception as e:
             print(f"Ошибка отправки на проверку {task_id}: {e}")
             return False
+
 

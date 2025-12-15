@@ -21,6 +21,12 @@ from typing import Dict
 
 LAST_TASK_PHOTO: Dict[int, int] = {}
 
+PROOF_SENT_TEXT = (
+    "✅ Доказательство отправлено на проверку!\n\n"
+    "Баллы начислятся после подтверждения админом."
+)
+
+
 router = Router()
 
 class ProofState(StatesGroup):
@@ -245,10 +251,44 @@ async def handle_proof_text(message: Message, state: FSMContext):
 
     await state.clear()
 
-    await message.answer(
-        "✅ Доказательство отправлено на проверку!\n\n"
-        "Баллы начислятся после подтверждения админом.",
+    await message.answer(PROOF_SENT_TEXT)
+
+
+    @router.message(ProofState.waiting_proof_text, F.photo)
+    async def handle_proof_photo(message: Message, state: FSMContext):
+        if not await ensure_subscribed_message(message):
+            return
+
+    data = await state.get_data()
+    task_id = data.get("task_id")
+    telegram_id = message.from_user.id
+
+    # Берём фото максимального размера
+    photo = message.photo[-1]
+
+    # Получаем файл из Telegram
+    file = await message.bot.get_file(photo.file_id)
+    file_bytes = await message.bot.download_file(file.file_path)
+    image_bytes = file_bytes.read()
+
+    ok = await complete_task(
+        task_id=task_id,
+        telegram_id=telegram_id,
+        proof_text="",  # можно оставить пустым
+        proof_image_bytes=image_bytes,
+        filename="proof.jpg",
+        mime_type="image/jpeg",
     )
+
+    if not ok:
+        await message.answer("❌ Не удалось отправить скрин. Попробуй ещё раз.")
+        return
+
+    await state.clear()
+
+    await message.answer(PROOF_SENT_TEXT)
+
+
 
 @router.callback_query(F.data == "cancel_proof")
 async def cancel_proof(callback: CallbackQuery, state: FSMContext):

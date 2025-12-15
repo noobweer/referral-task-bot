@@ -1,6 +1,7 @@
 from api.models import Task, Completed, TelegramUser
 from django.db.models import OuterRef, Exists
 from django.shortcuts import get_object_or_404
+from django.core.files.base import ContentFile
 from ninja.errors import HttpError
 from asgiref.sync import sync_to_async
 
@@ -72,7 +73,7 @@ def start_task(task_id: int, telegram_id: int):
 
 
 @sync_to_async
-def complete_task(task_id: int, telegram_id: int, proof_text: str | None = None):
+def complete_task(task_id: int, telegram_id: int, proof_text: str | None = None, proof_image=None):
     user = _get_profile_telegram(telegram_id)
     if not user:
         raise HttpError(404, "User with this telegram_id not found")
@@ -82,10 +83,7 @@ def complete_task(task_id: int, telegram_id: int, proof_text: str | None = None)
         raise HttpError(404, "Task not found")
 
     try:
-        completed = Completed.objects.select_related('task', 'user').get(
-            user=user,
-            task=task
-        )
+        completed = Completed.objects.select_related('task', 'user').get(user=user, task=task)
     except Completed.DoesNotExist:
         raise HttpError(404, "Task not started")
 
@@ -93,13 +91,15 @@ def complete_task(task_id: int, telegram_id: int, proof_text: str | None = None)
     if completed.status == Completed.STATUS_DONE:
         raise HttpError(400, "Task already approved")
 
-    # ✅ отправляем на проверку
     completed.status = Completed.STATUS_REVIEW
 
     if proof_text:
         completed.proof_text = proof_text
 
-    completed.save(update_fields=['status', 'proof_text'])
+    if proof_image is not None:
+        # UploadedFile -> читаем байты и сохраняем в ImageField
+        filename = proof_image.name or "proof.jpg"
+        completed.proof_image.save(filename, ContentFile(proof_image.read()), save=False)
 
-    # ❌ ВАЖНО: здесь больше НЕТ начисления баллов
+    completed.save()
     return completed
