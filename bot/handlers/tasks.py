@@ -4,6 +4,8 @@ from aiogram.types import (
     Message, CallbackQuery,
     InlineKeyboardButton, InlineKeyboardMarkup
 )
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
 import httpx
 from aiogram.types import BufferedInputFile
 from bot.config.settings import SUPPORT_USERNAME
@@ -20,6 +22,9 @@ from typing import Dict
 LAST_TASK_PHOTO: Dict[int, int] = {}
 
 router = Router()
+
+class ProofState(StatesGroup):
+    waiting_proof_text = State()
 
 
 def _format_task_text(task: dict) -> str:
@@ -200,35 +205,57 @@ async def handle_start_task(callback: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("complete_task:"))
-async def handle_complete_task(callback: CallbackQuery):
+async def handle_complete_task(callback: CallbackQuery, state: FSMContext):
     task_id = int(callback.data.split(":")[1])
-    telegram_id = callback.from_user.id
 
     await _delete_last_task_photo(callback)
 
-    if not await complete_task(task_id, telegram_id):
-        await callback.answer("Не удалось отправить подтверждение.", show_alert=True)
-        return
+    # запоминаем task_id и ждём доказательство
+    await state.set_state(ProofState.waiting_proof_text)
+    await state.update_data(task_id=task_id)
 
     await callback.message.edit_text(
-        "✅ Вы подтвердили выполнение задания!\n\n"
-        "⏳ Деньги поступят в течение нескольких дней.\n"
-        f"Если у вас возникли проблемы: @{SUPPORT_USERNAME}",
+        "✍️ Отправь доказательство выполнения.\n\n"
+        "Пример: ссылка, ник, короткое описание что сделал.\n\n"
+        "После этого я отправлю задание на проверку ✅",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⬅️ Назад к списку", callback_data="back_to_tasks")]
+            [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_proof")]
         ])
     )
-    msg_id = getattr(callback.message.chat, "photo_to_delete", None)
-    if msg_id:
-        try:
-            await callback.bot.delete_message(
-                chat_id=callback.message.chat.id,
-                message_id=msg_id
-            )
-        except Exception as e:
-            print("ERROR DELETING PHOTO:", e)
+    await callback.answer()
 
-    await callback.answer("Выполнено! Спасибо!")
+@router.message(ProofState.waiting_proof_text)
+async def handle_proof_text(message: Message, state: FSMContext):
+    if not await ensure_subscribed_message(message):
+        return
+
+    data = await state.get_data()
+    task_id = data.get("task_id")
+    telegram_id = message.from_user.id
+
+    proof_text = (message.text or "").strip()
+    if not proof_text:
+        await message.answer("Пришли доказательство текстом 🙏")
+        return
+
+    ok = await complete_task(task_id, telegram_id, proof_text=proof_text)
+    if not ok:
+        await message.answer("Не удалось отправить на проверку. Попробуй ещё раз.")
+        return
+
+    await state.clear()
+
+    await message.answer(
+        "✅ Доказательство отправлено на проверку!\n\n"
+        "Баллы начислятся после подтверждения админом.",
+    )
+
+@router.callback_query(F.data == "cancel_proof")
+async def cancel_proof(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.message.edit_text("Окей, отменил отправку ✅")
+    await callback.answer()
+
 
 
 @router.callback_query(F.data == "back_to_tasks")
