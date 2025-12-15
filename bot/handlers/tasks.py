@@ -221,8 +221,8 @@ async def handle_complete_task(callback: CallbackQuery, state: FSMContext):
     await state.update_data(task_id=task_id)
 
     await callback.message.edit_text(
-        "✍️ Отправь доказательство выполнения.\n\n"
-        "Пример: ссылка, ник, короткое описание что сделал.\n\n"
+        "📸 Отправь СКРИН выполнения задания.\n\n"
+        "Если по какой-то причине скрина нет — можешь написать доказательство текстом.\n\n"
         "После этого я отправлю задание на проверку ✅",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_proof")]
@@ -230,34 +230,10 @@ async def handle_complete_task(callback: CallbackQuery, state: FSMContext):
     )
     await callback.answer()
 
-@router.message(ProofState.waiting_proof_text)
-async def handle_proof_text(message: Message, state: FSMContext):
+@router.message(ProofState.waiting_proof_text, F.photo)
+async def handle_proof_photo(message: Message, state: FSMContext):
     if not await ensure_subscribed_message(message):
         return
-
-    data = await state.get_data()
-    task_id = data.get("task_id")
-    telegram_id = message.from_user.id
-
-    proof_text = (message.text or "").strip()
-    if not proof_text:
-        await message.answer("Пришли доказательство текстом 🙏")
-        return
-
-    ok = await complete_task(task_id, telegram_id, proof_text=proof_text)
-    if not ok:
-        await message.answer("Не удалось отправить на проверку. Попробуй ещё раз.")
-        return
-
-    await state.clear()
-
-    await message.answer(PROOF_SENT_TEXT)
-
-
-    @router.message(ProofState.waiting_proof_text, F.photo)
-    async def handle_proof_photo(message: Message, state: FSMContext):
-        if not await ensure_subscribed_message(message):
-            return
 
     data = await state.get_data()
     task_id = data.get("task_id")
@@ -287,6 +263,31 @@ async def handle_proof_text(message: Message, state: FSMContext):
     await state.clear()
 
     await message.answer(PROOF_SENT_TEXT)
+
+
+@router.message(ProofState.waiting_proof_text)
+async def handle_proof_text(message: Message, state: FSMContext):
+    if not await ensure_subscribed_message(message):
+        return
+
+    data = await state.get_data()
+    task_id = data.get("task_id")
+    telegram_id = message.from_user.id
+
+    proof_text = (message.text or "").strip()
+    if not proof_text:
+        await message.answer("Пришли доказательство текстом 🙏")
+        return
+
+    ok = await complete_task(task_id, telegram_id, proof_text=proof_text)
+    if not ok:
+        await message.answer("Не удалось отправить на проверку. Попробуй ещё раз.")
+        return
+
+    await state.clear()
+
+    await message.answer(PROOF_SENT_TEXT)
+
 
 
 
