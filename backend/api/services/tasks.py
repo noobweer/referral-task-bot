@@ -15,7 +15,7 @@ def get_available_tasks(telegram_id: int):
     completed_tasks = Completed.objects.filter(
         user=user,
         task=OuterRef('pk')
-    )
+    ).exclude(status=Completed.STATUS_REJECTED)
 
     return list(Task.objects.filter(is_active=True).exclude(
         Exists(completed_tasks)
@@ -30,7 +30,7 @@ def get_pending_tasks(telegram_id: int):
     return list(
         Task.objects.filter(
             completed__user=user,
-            completed__status=Completed.STATUS_PENDING
+            completed__status__in=[Completed.STATUS_PENDING, Completed.STATUS_REVIEW]
         )
     )
 
@@ -60,9 +60,31 @@ def start_task(task_id: int, telegram_id: int):
             user=user,
             task=task
         )
+        completed = Completed.objects.select_related('task', 'user').get(
+    user=user,
+    task=task
+)
+
+        # если уже принято — нельзя заново
         if completed.status == Completed.STATUS_DONE:
             raise HttpError(400, "Task already completed and cannot be restarted")
+
+        # ✅ если было отклонено — сбрасываем и даём начать заново
+        if completed.status == Completed.STATUS_REJECTED:
+            completed.status = Completed.STATUS_PENDING
+            completed.rewarded = False
+
+            # если у тебя есть поля proof_text / proof_image — чистим
+            if hasattr(completed, "proof_text"):
+                completed.proof_text = ""
+            if hasattr(completed, "proof_image"):
+                completed.proof_image = None
+
+            completed.save()
+            return Completed.objects.select_related('task', 'user').get(pk=completed.pk), False
+
         return completed, False
+
     except Completed.DoesNotExist:
         completed = Completed.objects.create(
             user=user,
