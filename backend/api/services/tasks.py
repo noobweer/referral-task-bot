@@ -72,7 +72,7 @@ def start_task(task_id: int, telegram_id: int):
 
 
 @sync_to_async
-def complete_task(task_id: int, telegram_id: int):
+def complete_task(task_id: int, telegram_id: int, proof_text: str | None = None):
     user = _get_profile_telegram(telegram_id)
     if not user:
         raise HttpError(404, "User with this telegram_id not found")
@@ -89,15 +89,17 @@ def complete_task(task_id: int, telegram_id: int):
     except Completed.DoesNotExist:
         raise HttpError(404, "Task not started")
 
+    # если уже принято — нельзя снова
     if completed.status == Completed.STATUS_DONE:
-        raise HttpError(400, "Task already completed")
+        raise HttpError(400, "Task already approved")
 
-    completed.status = Completed.STATUS_DONE
-    completed.save(update_fields=['status'])
-    
-     # ✅ НОВОЕ: +1 к счетчику заданий и начисление баллов
-    user.tasks_done += 1
-    user.points += task.reward   # reward теперь считаем как "баллы"
-    user.save(update_fields=["tasks_done", "points"])
+    # ✅ отправляем на проверку
+    completed.status = Completed.STATUS_REVIEW
 
+    if proof_text:
+        completed.proof_text = proof_text
+
+    completed.save(update_fields=['status', 'proof_text'])
+
+    # ❌ ВАЖНО: здесь больше НЕТ начисления баллов
     return completed

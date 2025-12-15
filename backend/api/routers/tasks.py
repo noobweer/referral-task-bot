@@ -58,5 +58,6 @@ async def post_start_task(request, task_id: int, telegram_id: int):
 
 
 @router.post("/{task_id}/complete", response=TaskStatusOut)
-async def post_complete_task(request, task_id: int, telegram_id: int):
-    return await complete_task(task_id, telegram_id)
+async def post_complete_task(request, task_id: int, telegram_id: int, proof_text: str = ""):
+    return await complete_task(task_id, telegram_id, proof_text=proof_text)
+
