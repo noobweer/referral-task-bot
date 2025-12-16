@@ -8,6 +8,15 @@ from bot.config.settings import SUPPORT_USERNAME
 router = Router()
 
 
+def get_level_title(level: int) -> str:
+    return {
+        0: "Новичок",
+        1: "Активный",
+        2: "Продвинутый",
+        3: "Премиум",
+    }.get(level, "Новичок")
+
+
 @router.message(F.text == "👤 Профиль")
 async def show_available_tasks(message: Message):
     # 🔒 Проверяем подписку
@@ -30,9 +39,13 @@ async def show_available_tasks(message: Message):
     tasks_done = profile.get("tasks_done", 0)
     date_joined = profile.get("date_joined_bot", "")
     last_activity = profile.get("last_activity", "")
+    level = profile.get("level", 0)
+    level_title = get_level_title(level)
 
     await message.answer(
         f"📌 Профиль пользователя: <b>{username}</b>\n\n"
+        f"🆔 ID: <code>{profile['telegram_id']}</code>\n"
+        f"⭐ Уровень: <b>Level {level} — {level_title}</b>\n"
         f"🪙 Баланс: <b>{points}</b> баллов\n"
         f"✅ Выполнено заданий: <b>{tasks_done}</b>\n",
         parse_mode="HTML"
