@@ -25,6 +25,7 @@ class Task(models.Model):
     instruction = models.TextField()
     link = models.URLField()
     reward = models.PositiveIntegerField()
+    level = models.PositiveSmallIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     
     image = models.ImageField(
