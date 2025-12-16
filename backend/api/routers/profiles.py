@@ -4,13 +4,30 @@ from ..services.profiles import get_profile_telegram, create_or_update_profile
 
 router = Router()
 
+def calc_level(tasks_done: int) -> int:
+    if tasks_done >= 30:
+        return 3
+    if tasks_done >= 15:
+        return 2
+    if tasks_done >= 5:
+        return 1
+    return 0
 
 @router.get("/profiles/{telegram_id}", response=ProfileOut)
 def get_profile(request, telegram_id: int):
     try:
-        return TelegramUser.objects.get(telegram_id=telegram_id)
+        user = TelegramUser.objects.get(telegram_id=telegram_id)
     except TelegramUser.DoesNotExist:
         raise HttpError(404, "Profile not found")
+
+    return {
+        "telegram_id": user.telegram_id,
+        "username": user.username,
+        "tasks_done": user.tasks_done,
+        "points": user.points,
+        "level": calc_level(user.tasks_done or 0),
+    }
+
 
 
 @router.post('/', response={201: ProfileOut, 200: ProfileOut})
