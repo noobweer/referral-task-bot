@@ -47,7 +47,7 @@ async def show_available_tasks(message: Message):
         f"🆔 ID: <code>{profile.get('telegram_id', telegram_id)}</code>\n"
         f"⭐ Уровень: <b>Level {level} — {level_title}</b>\n"
         f"💰 Баланс: <b>{profile.get('points', 0)}</b> баллов\n"
-        f"✅ Выполнено заданий: <b>{tasks_done}</b>\n",
+        f"✅ Выполнено заданий: <b>{profile.get('tasks_done', 0)}</b>\n",
         parse_mode="HTML"
     )
 
