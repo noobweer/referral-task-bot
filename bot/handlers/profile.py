@@ -25,6 +25,18 @@ async def show_available_tasks(message: Message):
     telegram_id = message.from_user.id
     profile = await fetch_profile(telegram_id)
 
+    tasks_done = int(profile.get("tasks_done", 0) or 0)
+    points = int(profile.get("points", 0) or 0)
+    level = int(profile.get("level", 0) or 0)
+
+    LEVEL_NAMES = {
+        0: "Новичок",
+        1: "Активный",
+        2: "Продвинутый",
+        3: "Профи",
+    }
+
+
     if not profile:
         # пробуем создать профиль
         await fetch_create_profile(telegram_id, message.from_user.username)
@@ -45,7 +57,7 @@ async def show_available_tasks(message: Message):
     await message.answer(
         f"👤 Профиль пользователя: <b>{username}</b>\n\n"
         f"🆔 ID: <code>{profile.get('telegram_id', telegram_id)}</code>\n"
-        f"⭐ Уровень: <b>Level {level} — {level_title}</b>\n"
+        f"⭐️ Уровень: <b>Level {level} — {LEVEL_NAMES.get(level, 'Новичок')}</b>\n"
         f"💰 Баланс: <b>{profile.get('points', 0)}</b> баллов\n"
         f"✅ Выполнено заданий: <b>{profile.get('tasks_done', 0)}</b>\n",
         parse_mode="HTML"
