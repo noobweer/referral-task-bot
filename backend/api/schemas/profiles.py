@@ -10,11 +10,13 @@ class ProfileIn(Schema):
 
 
 class ProfileOut(Schema):
+    telegram_id: int
     username: Optional[str] = None
-    date_joined_bot: datetime
-    last_activity: datetime
-    tasks_done: int
-    points: int
+    date_joined_bot: Optional[str] = None
+    last_activity: Optional[str] = None
+    tasks_done: int = 0
+    points: int = 0
+    level: int = 0
     
     @field_serializer('date_joined_bot', 'last_activity')
     def serialize_datetime(self, dt: datetime) -> str:

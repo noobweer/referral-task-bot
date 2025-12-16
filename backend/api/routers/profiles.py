@@ -13,7 +13,7 @@ def calc_level(tasks_done: int) -> int:
         return 1
     return 0
 
-@router.get("/profiles/{telegram_id}", response=ProfileOut)
+@router.get("/{telegram_id}", response=ProfileOut)
 def get_profile(request, telegram_id: int):
     try:
         user = TelegramUser.objects.get(telegram_id=telegram_id)
@@ -23,6 +23,8 @@ def get_profile(request, telegram_id: int):
     return {
         "telegram_id": user.telegram_id,
         "username": user.username,
+        "date_joined_bot": user.date_joined_bot,
+        "last_activity": user.last_activity,
         "tasks_done": user.tasks_done,
         "points": user.points,
         "level": calc_level(user.tasks_done or 0),
