@@ -13,6 +13,12 @@ def calc_level(tasks_done: int) -> int:
         return 1
     return 0
 
+def _fmt_dt(dt):
+    if not dt:
+        return None
+    return dt.strftime("%d.%m.%Y – %H:%M")
+
+
 @router.get("/{telegram_id}", response=ProfileOut)
 def get_profile(request, telegram_id: int):
     try:
@@ -23,8 +29,8 @@ def get_profile(request, telegram_id: int):
     return {
         "telegram_id": user.telegram_id,
         "username": user.username,
-        "date_joined_bot": user.date_joined_bot,
-        "last_activity": user.last_activity,
+        "date_joined_bot": _fmt_dt(user.date_joined_bot),
+        "last_activity": _fmt_dt(user.last_activity),
         "tasks_done": user.tasks_done,
         "points": user.points,
         "level": calc_level(user.tasks_done or 0),
