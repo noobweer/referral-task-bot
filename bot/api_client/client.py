@@ -38,18 +38,23 @@ async def fetch_welcome_messages():
             return []
 
 
-async def fetch_available_tasks(telegram_id):
+async def fetch_available_tasks(telegram_id: int, level: int | None = None):
     async with httpx.AsyncClient() as client:
         try:
+            params = {"telegram_id": telegram_id, "variant": "available"}
+            if level is not None:
+                params["level"] = level
+
             resp = await client.get(
                 f"{API_BASE_URL}/tasks/",
-                params={"telegram_id": telegram_id, "variant": "available"}
+                params=params
             )
             resp.raise_for_status()
             return resp.json()
         except Exception as e:
             print(f"API error: {e}")
             return []
+
 
 
 async def fetch_pending_tasks(telegram_id: int):
