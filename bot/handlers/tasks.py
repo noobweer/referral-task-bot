@@ -30,6 +30,32 @@ PROOF_SENT_TEXT = (
 
 router = Router()
 
+def _needed_tasks_for_level(level: int) -> int:
+    # пороги должны совпадать с backend calc_level()
+    return {0: 0, 1: 5, 2: 15, 3: 30}.get(level, 0)
+
+
+def _build_levels_keyboard(user_level: int, tasks_done: int) -> InlineKeyboardMarkup:
+    levels = [
+        (0, "Level 0 — минимальные"),
+        (1, "Level 1 — HR / простые финансы"),
+        (2, "Level 2 — МФО / гайды"),
+        (3, "Level 3 — премиум"),
+    ]
+
+    rows = []
+    for lvl, title in levels:
+        if lvl <= user_level:
+            # доступно
+            rows.append([InlineKeyboardButton(text=f"✅ {title}", callback_data=f"level_select:{lvl}")])
+        else:
+            need = _needed_tasks_for_level(lvl)
+            left = max(0, need - tasks_done)
+            rows.append([InlineKeyboardButton(text=f"🔒 {title} (ещё {left})", callback_data=f"level_locked:{lvl}")])
+
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
 LEVEL_SECTIONS = {
     0: "Level 0 — минимальные",
     1: "Level 1 — HR / простые финансы",
@@ -86,11 +112,63 @@ async def show_available_tasks(message: Message):
         return
 
     telegram_id = message.from_user.id
+
+    # Берём профиль, чтобы понять какой уровень доступен
+    from bot.api_client.client import fetch_profile
+    profile = await fetch_profile(telegram_id)
+
+    if not profile:
+        await message.answer("Профиль временно недоступен. Попробуй ещё раз через минуту 🙏")
+        return
+
+    user_level = int(profile.get("level", 0) or 0)
+    tasks_done = int(profile.get("tasks_done", 0) or 0)
+
+    keyboard = _build_levels_keyboard(user_level=user_level, tasks_done=tasks_done)
+    await message.answer("📚 Выбери раздел заданий:", reply_markup=keyboard)
+
+
+@router.callback_query(F.data.startswith("section:"))
+async def open_section(callback: CallbackQuery):
+    if not await ensure_subscribed_message(callback.message):
+        return
+
+    telegram_id = callback.from_user.id
+    level = int(callback.data.split(":")[1])
+
+    # тянем задания выбранного уровня
+    tasks = await fetch_available_tasks(telegram_id, level=level)
+
+    if not tasks:
+        await callback.message.edit_text(
+            "В этом разделе пока нет доступных заданий 🙂",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="⬅️ Назад к разделам", callback_data="back_to_sections")]
+            ])
+        )
+        await callback.answer()
+        return
+
+    keyboard = _build_list_keyboard(tasks, "task")
+    keyboard.inline_keyboard.append(
+        [InlineKeyboardButton(text="⬅️ Назад к разделам", callback_data="back_to_sections")]
+    )
+
+    await callback.message.edit_text(
+        f"📋 Задания раздела Level {level}:",
+        reply_markup=keyboard
+    )
+    await callback.answer()
+
+@router.callback_query(F.data == "back_to_sections")
+async def back_to_sections(callback: CallbackQuery):
+    telegram_id = callback.from_user.id
     profile = await fetch_profile(telegram_id) or {}
     user_level = int(profile.get("level", 0) or 0)
 
     keyboard = _build_sections_keyboard(user_level)
-    await message.answer("📂 Выбери раздел заданий:", reply_markup=keyboard)
+    await callback.message.edit_text("📂 Выбери раздел заданий:", reply_markup=keyboard)
+    await callback.answer()
 
 
 @router.message(F.text == "⏱️ Активные задания")
@@ -348,4 +426,31 @@ async def back_to_pending(callback: CallbackQuery):
 
     keyboard = _build_list_keyboard(tasks, "pending_task")
     await callback.message.edit_text("⏱️ Ваши активные задания:", reply_markup=keyboard)
+    await callback.answer()
+
+@router.callback_query(F.data.startswith("level_locked:"))
+async def level_locked(callback: CallbackQuery):
+    lvl = int(callback.data.split(":")[1])
+    need = _needed_tasks_for_level(lvl)
+    await callback.answer(
+        f"🔒 Этот уровень пока закрыт.\nНужно выполнить минимум {need} заданий.",
+        show_alert=True
+    )
+
+
+@router.callback_query(F.data.startswith("level_select:"))
+async def level_select(callback: CallbackQuery):
+    lvl = int(callback.data.split(":")[1])
+    telegram_id = callback.from_user.id
+
+    # получаем задания только выбранного уровня
+    tasks = await fetch_available_tasks(telegram_id, level=lvl)
+
+    if not tasks:
+        await callback.message.edit_text("Нет доступных заданий в этом разделе.")
+        await callback.answer()
+        return
+
+    keyboard = _build_list_keyboard(tasks, "task")
+    await callback.message.edit_text(f"📋 Задания из раздела Level {lvl}:", reply_markup=keyboard)
     await callback.answer()

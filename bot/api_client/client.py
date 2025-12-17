@@ -46,17 +46,12 @@ async def fetch_available_tasks(telegram_id: int, level: int | None = None):
                 params["level"] = level
 
             resp = await client.get(f"{API_BASE_URL}/tasks/", params=params)
-
-            # ✅ если нет доступа к уровню
-            if resp.status_code == 403:
-                return {"error": "forbidden"}
-
             resp.raise_for_status()
             return resp.json()
-
         except Exception as e:
             print(f"API error: {e}")
             return []
+
 
 
 

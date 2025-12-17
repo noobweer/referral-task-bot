@@ -27,25 +27,37 @@ def get_available_tasks(telegram_id: int, level: int | None = None):
     if not user:
         return []
 
-    # ✅ уровень пользователя
-    user_level = get_user_level(user)
+    # считаем уровень пользователя по tasks_done
+    tasks_done = int(user.tasks_done or 0)
+    if tasks_done >= 30:
+        user_level = 3
+    elif tasks_done >= 15:
+        user_level = 2
+    elif tasks_done >= 5:
+        user_level = 1
+    else:
+        user_level = 0
 
-    # ✅ если клиент запросил level — проверяем доступ
-    if level is not None and int(level) > user_level:
-        raise HttpError(403, "Level is not доступен")
+    # если level не передали — показываем ВСЕ задания, которые <= уровню пользователя
+    if level is None:
+        allowed_levels = list(range(0, user_level + 1))
+    else:
+        level = int(level)
+        # защита: нельзя открыть раздел выше своего уровня
+        if level > user_level:
+            raise HttpError(403, "This level is not доступен для пользователя")
+        allowed_levels = [level]
 
     completed_tasks = Completed.objects.filter(
         user=user,
-        task=OuterRef('pk')
+        task=OuterRef("pk")
     ).exclude(status=Completed.STATUS_REJECTED)
 
-    qs = Task.objects.filter(is_active=True).exclude(Exists(completed_tasks))
+    return list(
+        Task.objects.filter(is_active=True, level__in=allowed_levels)
+        .exclude(Exists(completed_tasks))
+    )
 
-    # ✅ фильтр по уровню (если передали)
-    if level is not None:
-        qs = qs.filter(level=int(level))
-
-    return list(qs)
 
 
 
