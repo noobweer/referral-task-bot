@@ -37,11 +37,11 @@ def _serialize_task(request, task: Task) -> TaskOut:
 
 
 @router.get("/", response=List[TaskOut])
-async def get_tasks(request, telegram_id: int, variant: str):
+async def get_tasks(request, telegram_id: int, variant: str, level: int | None = None):
     if variant == "pending":
         tasks = await get_pending_tasks(telegram_id)
     else:
-        tasks = await get_available_tasks(telegram_id)
+        tasks = await get_available_tasks(telegram_id, level=level)
 
     return [_serialize_task(request, task) for task in tasks]
 

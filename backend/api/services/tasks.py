@@ -7,19 +7,46 @@ from asgiref.sync import sync_to_async
 
 from .profiles import _get_profile_telegram
 
+def calc_level(tasks_done: int) -> int:
+    if tasks_done >= 30:
+        return 3
+    if tasks_done >= 15:
+        return 2
+    if tasks_done >= 5:
+        return 1
+    return 0
+
+
+def get_user_level(user: TelegramUser) -> int:
+    return calc_level(int(user.tasks_done or 0))
+
 
 @sync_to_async
-def get_available_tasks(telegram_id: int):
+def get_available_tasks(telegram_id: int, level: int | None = None):
     user = _get_profile_telegram(telegram_id)
+    if not user:
+        return []
+
+    # ✅ уровень пользователя
+    user_level = get_user_level(user)
+
+    # ✅ если клиент запросил level — проверяем доступ
+    if level is not None and int(level) > user_level:
+        raise HttpError(403, "Level is not доступен")
 
     completed_tasks = Completed.objects.filter(
         user=user,
         task=OuterRef('pk')
     ).exclude(status=Completed.STATUS_REJECTED)
 
-    return list(Task.objects.filter(is_active=True).exclude(
-        Exists(completed_tasks)
-    ))
+    qs = Task.objects.filter(is_active=True).exclude(Exists(completed_tasks))
+
+    # ✅ фильтр по уровню (если передали)
+    if level is not None:
+        qs = qs.filter(level=int(level))
+
+    return list(qs)
+
 
 
 @sync_to_async
@@ -54,16 +81,16 @@ def start_task(task_id: int, telegram_id: int):
     if not task:
         raise HttpError(404, "Task not found")
 
+    # ✅ запрет на старт заданий выше уровня пользователя
+    user_level = get_user_level(user)
+    if hasattr(task, "level") and int(task.level or 0) > user_level:
+        raise HttpError(403, "Task level is not доступен")
+
     try:
-        # 🔥 Добавь select_related здесь
         completed = Completed.objects.select_related('task', 'user').get(
             user=user,
             task=task
         )
-        completed = Completed.objects.select_related('task', 'user').get(
-    user=user,
-    task=task
-)
 
         # если уже принято — нельзя заново
         if completed.status == Completed.STATUS_DONE:
@@ -74,7 +101,7 @@ def start_task(task_id: int, telegram_id: int):
             completed.status = Completed.STATUS_PENDING
             completed.rewarded = False
 
-            # если у тебя есть поля proof_text / proof_image — чистим
+            # если есть поля proof_text / proof_image — чистим
             if hasattr(completed, "proof_text"):
                 completed.proof_text = ""
             if hasattr(completed, "proof_image"):
@@ -92,6 +119,7 @@ def start_task(task_id: int, telegram_id: int):
             status=Completed.STATUS_PENDING
         )
         return Completed.objects.select_related('task', 'user').get(pk=completed.pk), True
+
 
 
 @sync_to_async
