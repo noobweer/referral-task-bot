@@ -9,6 +9,7 @@ from aiogram.fsm.state import StatesGroup, State
 import httpx
 from aiogram.types import BufferedInputFile
 from bot.config.settings import SUPPORT_USERNAME
+from bot.api_client.client import fetch_profile
 
 from bot.api_client.client import (
     fetch_available_tasks,
@@ -28,6 +29,23 @@ PROOF_SENT_TEXT = (
 
 
 router = Router()
+
+LEVEL_SECTIONS = {
+    0: "Level 0 — минимальные",
+    1: "Level 1 — HR / простые финансы",
+    2: "Level 2 — МФО / гайды",
+    3: "Level 3 — премиум",
+}
+
+def _build_sections_keyboard(user_level: int) -> InlineKeyboardMarkup:
+    kb = []
+    for lvl in range(4):
+        title = LEVEL_SECTIONS[lvl]
+        lock = " 🔒" if user_level < lvl else ""
+        kb.append([InlineKeyboardButton(text=f"{title}{lock}", callback_data=f"section:{lvl}")])
+    kb.append([InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main")])
+    return InlineKeyboardMarkup(inline_keyboard=kb)
+
 
 class ProofState(StatesGroup):
     waiting_proof_text = State()
@@ -66,13 +84,13 @@ def _build_list_keyboard(tasks: list, prefix: str) -> InlineKeyboardMarkup:
 async def show_available_tasks(message: Message):
     if not await ensure_subscribed_message(message):
         return
+
     telegram_id = message.from_user.id
-    tasks = await fetch_available_tasks(telegram_id)
-    if not tasks:
-        await message.answer("Нет доступных заданий.")
-        return
-    keyboard = _build_list_keyboard(tasks, "task")
-    await message.answer("📋 Доступные задания:", reply_markup=keyboard)
+    profile = await fetch_profile(telegram_id) or {}
+    user_level = int(profile.get("level", 0) or 0)
+
+    keyboard = _build_sections_keyboard(user_level)
+    await message.answer("📂 Выбери раздел заданий:", reply_markup=keyboard)
 
 
 @router.message(F.text == "⏱️ Активные задания")
