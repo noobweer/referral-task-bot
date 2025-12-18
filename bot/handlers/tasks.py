@@ -35,7 +35,7 @@ def _needed_tasks_for_level(level: int) -> int:
     return {0: 0, 1: 5, 2: 15, 3: 30}.get(level, 0)
 
 
-def _build_levels_keyboard(user_level: int, tasks_done: int) -> InlineKeyboardMarkup:
+def _build_levels_keyboard(user_level: int) -> InlineKeyboardMarkup:
     levels = [
         (0, "Level 0 — минимальные"),
         (1, "Level 1 — HR / простые финансы"),
@@ -43,17 +43,15 @@ def _build_levels_keyboard(user_level: int, tasks_done: int) -> InlineKeyboardMa
         (3, "Level 3 — премиум"),
     ]
 
-    rows = []
+    kb = []
     for lvl, title in levels:
         if lvl <= user_level:
-            # доступно
-            rows.append([InlineKeyboardButton(text=f"✅ {title}", callback_data=f"level_select:{lvl}")])
+            kb.append([InlineKeyboardButton(text=title, callback_data=f"section:{lvl}")])
         else:
-            need = _needed_tasks_for_level(lvl)
-            left = max(0, need - tasks_done)
-            rows.append([InlineKeyboardButton(text=f"🔒 {title} (ещё {left})", callback_data=f"level_locked:{lvl}")])
+            kb.append([InlineKeyboardButton(text=f"🔒 {title}", callback_data="level_locked")])
 
-    return InlineKeyboardMarkup(inline_keyboard=rows)
+    return InlineKeyboardMarkup(inline_keyboard=kb)
+
 
 
 LEVEL_SECTIONS = {
@@ -304,6 +302,10 @@ async def handle_start_task(callback: CallbackQuery):
         disable_web_page_preview=False
     )
     await callback.answer("Задание начато! ✅")
+
+@router.callback_query(F.data == "level_locked")
+async def level_locked(callback: CallbackQuery):
+    await callback.answer("Этот раздел откроется на более высоком уровне 🙂", show_alert=True)
 
 
 @router.callback_query(F.data.startswith("complete_task:"))
