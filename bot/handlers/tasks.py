@@ -122,7 +122,7 @@ async def show_available_tasks(message: Message):
     user_level = int(profile.get("level", 0) or 0)
     tasks_done = int(profile.get("tasks_done", 0) or 0)
 
-    keyboard = _build_levels_keyboard(user_level=user_level, tasks_done=tasks_done)
+    keyboard = _build_levels_keyboard(user_level=user_level)
     await message.answer("📚 Выбери раздел заданий:", reply_markup=keyboard)
 
 
