@@ -456,3 +456,17 @@ async def level_select(callback: CallbackQuery):
     keyboard = _build_list_keyboard(tasks, "task")
     await callback.message.edit_text(f"📋 Задания из раздела Level {lvl}:", reply_markup=keyboard)
     await callback.answer()
+
+
+@router.callback_query(F.data == "back_to_main")
+async def back_to_main(callback: CallbackQuery):
+    telegram_id = callback.from_user.id
+
+    profile = await fetch_profile(telegram_id) or {}
+    user_level = int(profile.get("level", 0) or 0)
+    tasks_done = int(profile.get("tasks_done", 0) or 0)
+
+    keyboard = _build_levels_keyboard(user_level=user_level, tasks_done=tasks_done)
+
+    await callback.message.edit_text("📚 Выбери раздел заданий:", reply_markup=keyboard)
+    await callback.answer()
