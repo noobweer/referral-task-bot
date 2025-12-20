@@ -10,6 +10,7 @@ import httpx
 from aiogram.types import BufferedInputFile
 from bot.config.settings import SUPPORT_USERNAME
 from bot.api_client.client import fetch_profile
+from bot.keyboards.main_menu import main_menu
 
 from bot.api_client.client import (
     fetch_available_tasks,
@@ -460,13 +461,16 @@ async def level_select(callback: CallbackQuery):
 
 @router.callback_query(F.data == "back_to_main")
 async def back_to_main(callback: CallbackQuery):
-    telegram_id = callback.from_user.id
+    # если была картинка задания — убираем
+    await _delete_last_task_photo(callback)
 
-    profile = await fetch_profile(telegram_id) or {}
-    user_level = int(profile.get("level", 0) or 0)
-    tasks_done = int(profile.get("tasks_done", 0) or 0)
+    # убираем inline-сообщение
+    await callback.message.delete()
 
-    keyboard = _build_levels_keyboard(user_level=user_level, tasks_done=tasks_done)
+    # возвращаем пользователя в главное меню
+    await callback.message.answer(
+        "🏠 Главное меню. Выбери действие 👇",
+        reply_markup=main_menu
+    )
 
-    await callback.message.edit_text("📚 Выбери раздел заданий:", reply_markup=keyboard)
     await callback.answer()
