@@ -6,7 +6,7 @@ main_menu = ReplyKeyboardMarkup(
         [KeyboardButton(text="⏱️ Активные задания")],
         [KeyboardButton(text="👤 Профиль")],
         [KeyboardButton(text="💸 Выплата")],
-        [KeyboardButton(text="📜 История заданий")]
+        [KeyboardButton(text="📜 История заданий")],
         [KeyboardButton(text="💼 Поддержка")],
     ],
     resize_keyboard=True,
