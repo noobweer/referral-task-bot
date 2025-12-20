@@ -4,6 +4,9 @@ from api.models import Completed
 
 app = apps.get_app_config('api')
 for model_name, model in app.models.items():
+    if model == Completed:
+        continue
+    
     model_admin = type(model_name + "Admin", (admin.ModelAdmin,), {})
 
     model_admin.list_display = model.admin_list_display if hasattr(model, 'admin_list_display') else tuple([field.name for field in model._meta.fields])
