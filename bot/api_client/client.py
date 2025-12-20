@@ -121,4 +121,16 @@ async def complete_task(
             print(f"Ошибка отправки на проверку {task_id}: {e}")
             return False
 
+async def fetch_history(telegram_id: int, limit: int = 10):
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(
+                f"{API_BASE_URL}/history/",
+                params={"telegram_id": telegram_id, "limit": limit},
+            )
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            print(f"API error (history): {e}")
+            return []
 

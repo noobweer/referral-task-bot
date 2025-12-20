@@ -6,6 +6,7 @@ from handlers.start import router as start_router
 from handlers.profile import router as profile_router
 from handlers.support import router as support_router
 from handlers.tasks import router as tasks_router
+from handlers.history import router as history_router
 
 logging.basicConfig(level=logging.INFO)
 
@@ -16,6 +17,7 @@ dp.include_router(start_router)
 dp.include_router(profile_router)
 dp.include_router(support_router)
 dp.include_router(tasks_router)
+dp.include_router(history_router)
 
 
 async def main():
