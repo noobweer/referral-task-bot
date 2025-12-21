@@ -474,3 +474,8 @@ async def back_to_main(callback: CallbackQuery):
     )
 
     await callback.answer()
+
+
+@router.message(F.text == "📜 История заданий")
+async def show_history(message: Message):
+    await message.answer("📜 История заданий пока в разработке ✅")
