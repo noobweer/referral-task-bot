@@ -80,7 +80,7 @@ def _format_task_text(task: dict) -> str:
     text = (
         f"📌 <b>{task['title']}</b>\n\n"
         f"📋 <b>Инструкция:</b>\n{task['instruction']}\n\n"
-        f"💰 Награда: {task['reward']}₽"
+        f"💰 Награда: {task['reward']}Б"
     )
     if task.get("link"):
         text += f"\n🔗 <a href='{task['link']}'>[Нажми] Ссылка для выполнения</a>"
@@ -97,7 +97,7 @@ def _build_task_detail_keyboard(task_id: int, back_callback: str) -> InlineKeybo
 def _build_list_keyboard(tasks: list, prefix: str) -> InlineKeyboardMarkup:
     kb = [
         [InlineKeyboardButton(
-            text=f"{t['title']} — {t['reward']}₽",
+            text=f"{t['title']} — {t['reward']}Б",
             callback_data=f"{prefix}:{t['id']}"
         )]
         for t in tasks
@@ -222,7 +222,7 @@ async def show_task_history(message: Message):
 
         lines.append(f"{i}) {emoji} <b>{title}</b>")
         lines.append(f"   • Статус: <b>{label}</b>")
-        lines.append(f"   • Level: <b>{level}</b> | Награда: <b>{reward}</b>₽")
+        lines.append(f"   • Level: <b>{level}</b> | Награда: <b>{reward}</b>Б")
 
         admin_comment = item.get("admin_comment")
         if admin_comment:
