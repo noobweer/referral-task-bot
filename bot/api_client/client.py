@@ -121,7 +121,7 @@ async def complete_task(
             print(f"Ошибка отправки на проверку {task_id}: {e}")
             return False
 
-async def fetch_history(telegram_id: int, limit: int = 10):
+async def fetch_history(telegram_id: int, limit: int = 20):
     async with httpx.AsyncClient() as client:
         try:
             resp = await client.get(

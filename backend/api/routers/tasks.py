@@ -5,14 +5,16 @@ from ninja.files import UploadedFile
 from ninja import File
 from django.conf import settings
 from ..models import Task
+from ..models import Completed
 from ..services.tasks import (
     get_pending_tasks,
     get_available_tasks,
+    get_task_history,
     get_task_by_id,
     start_task,
     complete_task,
 )
-from ..schemas.tasks import TaskOut, TaskStatusOut
+from ..schemas.tasks import TaskOut, TaskStatusOut, TaskHistoryOut
 
 router = Router()
 
@@ -74,4 +76,28 @@ async def post_complete_task(
         proof_image=proof_image
     )
 
+
+def _serialize_history_item(item: Completed) -> TaskHistoryOut:
+    proof_image_url = None
+    if getattr(item, "proof_image", None):
+        proof_image_url = f"{settings.PUBLIC_BASE_URL}{item.proof_image.url}"
+
+    return TaskHistoryOut(
+        id=item.id,
+        task_id=item.task_id,
+        title=item.task.title,
+        reward=item.task.reward,
+        level=getattr(item.task, "level", 0) or 0,
+        status=item.status,
+        status_label=item.get_status_display(),
+        admin_comment=item.admin_comment,
+        proof_text=item.proof_text,
+        proof_image=proof_image_url,
+    )
+
+
+@router.get("/history", response=List[TaskHistoryOut])
+async def get_history(request, telegram_id: int, limit: int = 20):
+    items = await get_task_history(telegram_id, limit=limit)
+    return [_serialize_history_item(x) for x in items]
 

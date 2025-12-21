@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.core.files.base import ContentFile
 from ninja.errors import HttpError
 from asgiref.sync import sync_to_async
-
+from typing import List
 from .profiles import _get_profile_telegram
 
 def calc_level(tasks_done: int) -> int:
@@ -156,3 +156,16 @@ def complete_task(task_id: int, telegram_id: int, proof_text: str | None = None,
 
     completed.save()
     return completed
+
+@sync_to_async
+def get_task_history(telegram_id: int, limit: int = 20):
+    user = _get_profile_telegram(telegram_id)
+    if not user:
+        return []
+
+    return list(
+        Completed.objects
+        .select_related("task", "user")
+        .filter(user=user)
+        .order_by("-id")[:limit]
+    )

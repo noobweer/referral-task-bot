@@ -9,7 +9,7 @@ from aiogram.fsm.state import StatesGroup, State
 import httpx
 from aiogram.types import BufferedInputFile
 from bot.config.settings import SUPPORT_USERNAME
-from bot.api_client.client import fetch_profile
+from bot.api_client.client import fetch_profile, fetch_task_history
 from bot.keyboards.main_menu import main_menu
 
 from bot.api_client.client import (
@@ -113,7 +113,6 @@ async def show_available_tasks(message: Message):
     telegram_id = message.from_user.id
 
     # Берём профиль, чтобы понять какой уровень доступен
-    from bot.api_client.client import fetch_profile
     profile = await fetch_profile(telegram_id)
 
     if not profile:
@@ -193,6 +192,48 @@ async def _delete_last_task_photo(callback: CallbackQuery):
         await callback.bot.delete_message(chat_id=chat_id, message_id=msg_id)
     except Exception as e:
         print("ERROR DELETING TASK PHOTO:", e)
+
+@router.message(F.text == "📜 История заданий")
+async def show_task_history(message: Message):
+    if not await ensure_subscribed_message(message):
+        return
+
+    telegram_id = message.from_user.id
+    history = await fetch_task_history(telegram_id, limit=20)
+
+    if not history:
+        await message.answer("📜 История пока пустая.")
+        return
+
+    status_emoji = {
+        "PE": "🟡",  # В процессе
+        "RV": "🕓",  # На проверке
+        "DN": "✅",  # Принято
+        "RJ": "❌",  # Отклонено
+    }
+
+    lines = ["📜 <b>История заданий</b>\n"]
+    for i, item in enumerate(history, start=1):
+        emoji = status_emoji.get(item.get("status"), "•")
+        title = item.get("title", "—")
+        reward = item.get("reward", 0)
+        level = item.get("level", 0)
+        label = item.get("status_label", item.get("status"))
+
+        lines.append(f"{i}) {emoji} <b>{title}</b>")
+        lines.append(f"   • Статус: <b>{label}</b>")
+        lines.append(f"   • Level: <b>{level}</b> | Награда: <b>{reward}</b>₽")
+
+        admin_comment = item.get("admin_comment")
+        if admin_comment:
+            lines.append(f"   • Коммент админа: <i>{admin_comment}</i>")
+
+        lines.append("")  # пустая строка между задачами
+
+    text = "\n".join(lines)
+    # если вдруг слишком длинно — можно будет потом разбить на 2 сообщения
+    await message.answer(text, parse_mode="HTML")
+
 
 @router.callback_query(F.data.startswith("task:") | F.data.startswith("pending_task:"))
 async def show_task_detail(callback: CallbackQuery):
