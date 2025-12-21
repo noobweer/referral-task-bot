@@ -9,7 +9,7 @@ from aiogram.fsm.state import StatesGroup, State
 import httpx
 from aiogram.types import BufferedInputFile
 from bot.config.settings import SUPPORT_USERNAME
-from bot.api_client.client import fetch_profile, fetch_task_history
+from bot.api_client.client import fetch_profile, fetch_history
 from bot.keyboards.main_menu import main_menu
 
 from bot.api_client.client import (
@@ -199,7 +199,7 @@ async def show_task_history(message: Message):
         return
 
     telegram_id = message.from_user.id
-    history = await fetch_task_history(telegram_id, limit=20)
+    history = await fetch_history(telegram_id, limit=20)
 
     if not history:
         await message.answer("📜 История пока пустая.")
