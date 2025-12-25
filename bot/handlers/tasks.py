@@ -134,12 +134,28 @@ async def open_section(callback: CallbackQuery):
     telegram_id = callback.from_user.id
     level = int(callback.data.split(":")[1])
 
-    # тянем задания выбранного уровня
-    tasks = await fetch_available_tasks(telegram_id, level=level)
+    # 🔹 тянем профиль пользователя
+    profile = await fetch_profile(telegram_id) or {}
+    user_level = int(profile.get("level", 0) or 0)
+    tasks_done = int(profile.get("tasks_done", 0) or 0)
 
-    if not tasks:
+    # 🔹 требования к уровням
+    LEVEL_REQUIREMENTS = {
+        0: 0,
+        1: 5,
+        2: 15,
+        3: 30,
+    }
+
+    # 🔒 1. Раздел ЗАБЛОКИРОВАН
+    if level > user_level:
+        need = LEVEL_REQUIREMENTS.get(level, 0)
+        left = max(0, need - tasks_done)
+
         await callback.message.edit_text(
-            "В этом разделе пока нет доступных заданий 🙂",
+            f"🔒 Раздел Level {level} пока недоступен.\n\n"
+            f"Выполни ещё <b>{left}</b> заданий, чтобы открыть его 🚀",
+            parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="⬅️ Назад к разделам", callback_data="back_to_sections")]
             ])
@@ -147,6 +163,22 @@ async def open_section(callback: CallbackQuery):
         await callback.answer()
         return
 
+    # ✅ 2. Раздел ДОСТУПЕН → тянем задания
+    tasks = await fetch_available_tasks(telegram_id, level=level)
+
+    # 🧾 3. Все задания выполнены
+    if not tasks:
+        await callback.message.edit_text(
+            "✅ Ты уже выполнил все задания этого раздела.\n\n"
+            "Следи за обновлениями — скоро появятся новые 💎",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="⬅️ Назад к разделам", callback_data="back_to_sections")]
+            ])
+        )
+        await callback.answer()
+        return
+
+    # 📋 4. Есть задания — показываем список
     keyboard = _build_list_keyboard(tasks, "task")
     keyboard.inline_keyboard.append(
         [InlineKeyboardButton(text="⬅️ Назад к разделам", callback_data="back_to_sections")]
@@ -157,6 +189,7 @@ async def open_section(callback: CallbackQuery):
         reply_markup=keyboard
     )
     await callback.answer()
+
 
 @router.callback_query(F.data == "back_to_sections")
 async def back_to_sections(callback: CallbackQuery):
