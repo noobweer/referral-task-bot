@@ -20,10 +20,14 @@ dp.include_router(support_router)
 dp.include_router(tasks_router)
 dp.include_router(history_router)
 
-asyncio.create_task(push_worker(bot))
-
 async def main():
-    await dp.start_polling(bot)
+
+    push_task = asyncio.create_task(push_worker(bot))
+
+    try:
+        await dp.start_polling(bot)
+    finally:
+        push_task.cancel()
 
 if __name__ == "__main__":
     asyncio.run(main())
