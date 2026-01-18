@@ -13,7 +13,8 @@ class TelegramUser(models.Model):
     
     locker_passed_at = models.DateTimeField(blank=True, null=True)
     next_push_at = models.DateTimeField(blank=True, null=True)
-    
+    last_push_at = models.DateTimeField(blank=True, null=True)
+
     class Meta:
         verbose_name = "Пользователь Telegram"
         verbose_name_plural = "Пользователи Telegram"
