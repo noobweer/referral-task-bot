@@ -134,3 +134,16 @@ async def fetch_history(telegram_id: int, limit: int = 20):
             print(f"API error (history): {e}")
             return []
 
+async def notify_locker_passed(telegram_id: int):
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.post(
+                f"{API_BASE_URL}/pushes/locker-passed",
+                params={"telegram_id": telegram_id},
+                timeout=10.0,
+            )
+            resp.raise_for_status()
+            return True
+        except Exception as e:
+            print(f"API error (locker-passed): {e}")
+            return False

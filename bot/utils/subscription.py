@@ -4,7 +4,7 @@ from aiogram.exceptions import TelegramBadRequest
 
 from bot.config.settings import REQUIRED_CHANNEL_USERNAME
 from bot.keyboards.subscribe import get_subscribe_keyboard
-
+from bot.api_client.client import notify_locker_passed
 
 async def is_user_subscribed(bot: Bot, user_id: int) -> bool:
     """
@@ -35,6 +35,7 @@ async def ensure_subscribed_message(message: Message) -> bool:
     user_id = message.from_user.id
 
     if await is_user_subscribed(bot, user_id):
+        await notify_locker_passed(user_id)
         return True
 
     await message.answer(

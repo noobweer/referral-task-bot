@@ -7,6 +7,7 @@ from handlers.profile import router as profile_router
 from handlers.support import router as support_router
 from handlers.tasks import router as tasks_router
 from handlers.history import router as history_router
+from bot.services.pushes import push_worker
 
 logging.basicConfig(level=logging.INFO)
 
@@ -19,6 +20,7 @@ dp.include_router(support_router)
 dp.include_router(tasks_router)
 dp.include_router(history_router)
 
+asyncio.create_task(push_worker(bot))
 
 async def main():
     await dp.start_polling(bot)

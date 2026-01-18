@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.utils import timezone
 
 class TelegramUser(models.Model):
     telegram_id = models.IntegerField(primary_key=True)
@@ -10,6 +10,9 @@ class TelegramUser(models.Model):
 
     points = models.PositiveIntegerField(default=0)
     bonus_claimed = models.BooleanField(default=False)
+    
+    locker_passed_at = models.DateTimeField(blank=True, null=True)
+    next_push_at = models.DateTimeField(blank=True, null=True)
     
     class Meta:
         verbose_name = "Пользователь Telegram"
