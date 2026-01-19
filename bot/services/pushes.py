@@ -3,6 +3,7 @@ import random
 import httpx
 
 from bot.config.settings import API_BASE_URL
+from bot.api_client.client import fetch_task_details
 
 
 PUSH_TEMPLATES = [
@@ -12,7 +13,13 @@ PUSH_TEMPLATES = [
 ]
 
 
+
 def _format_task(task: dict) -> str:
+    
+    instruction = (task.get("instruction") or "").strip()
+    if not instruction:
+        instruction = (task.get("description") or "").strip() or "Инструкция скоро появится 🙏"
+
     text = (
         f"📌 <b>{task['title']}</b>\n\n"
         f"📋 <b>Инструкция:</b>\n{task['instruction']}\n\n"
@@ -59,13 +66,23 @@ async def push_worker(bot):
                     await mark_sent(telegram_id)
                     continue
 
+                task_id = task.get("id")
+                if not task_id:
+                    await mark_sent(telegram_id)
+                    continue
+
+                full_task = await fetch_task_details(task_id)
+                if not full_task:
+                    # не смогли получить детали — не шлём пуш, просто отложим на следующий цикл
+                    continue
+
                 task_text = _format_task(task)
                 template = random.choice(PUSH_TEMPLATES)
                 text = template.format(task=task_text)
 
                 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
                 kb = InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="✅ Начать", callback_data=f"start_task:{task['id']}")]
+                    [InlineKeyboardButton(text="✅ Начать", callback_data=f"start_task:{full_task['id']}")]
                 ])
 
                 await bot.send_message(telegram_id, text, parse_mode="HTML", reply_markup=kb, disable_web_page_preview=False)
