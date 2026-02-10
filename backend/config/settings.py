@@ -10,7 +10,7 @@ DEBUG = os.getenv("DEBUG", "1") == "1"
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
+ALLOWED_HOSTS = ['*']
 
 
 INSTALLED_APPS = [
@@ -96,18 +96,12 @@ USE_I18N = True
 
 USE_TZ = True
 
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-STATIC_URL = 'static/'
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
-
-PUBLIC_BASE_URL = "https://cash-lab.ru"
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL")
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

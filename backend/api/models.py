@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
+
 class TelegramUser(models.Model):
     telegram_id = models.IntegerField(primary_key=True)
     username = models.CharField(max_length=128, unique=True, blank=True, null=True)

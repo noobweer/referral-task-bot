@@ -1,4 +1,5 @@
 django
 django-ninja
 python-dotenv
-Pillow
+gunicorn
+pillow
