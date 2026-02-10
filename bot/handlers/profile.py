@@ -19,7 +19,6 @@ def get_level_title(level: int) -> str:
 
 @router.message(F.text == "👤 Профиль")
 async def show_available_tasks(message: Message):
-    # 🔒 Проверяем подписку
     if not await ensure_subscribed_message(message):
         return
     telegram_id = message.from_user.id
@@ -27,7 +26,6 @@ async def show_available_tasks(message: Message):
 
 
     if not profile:
-        # пробуем создать профиль
         await fetch_create_profile(telegram_id, message.from_user.username)
         profile = await fetch_profile(telegram_id)
 
@@ -46,7 +44,6 @@ async def show_available_tasks(message: Message):
     points = int(profile.get("points", 0) or 0)
     tasks_done = int(profile.get("tasks_done", 0) or 0)
 
-    # главное: level всегда приводим к int
     level = int(profile.get("level", 0) or 0)
     level_title = LEVEL_NAMES.get(level, "Новичок")
 
